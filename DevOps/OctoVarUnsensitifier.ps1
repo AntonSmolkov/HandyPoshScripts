@@ -21,32 +21,26 @@ Unsensitify sensitive variables with names 'VariableOne' or 'VariableTwo' in ALL
 Decryption function is based on this linqpad snippet - https://github.com/ronnieoverby/linqpad-utils/blob/master/octopus%20sensitive%20variables.linq
 #>
 
-# [CmdletBinding()]
-#    param(
-#     [Parameter(Mandatory=$true)]
-#     [String]$OctoMasterKey,
+ [CmdletBinding()]
+    param(
+     [Parameter(Mandatory=$true)]
+     [String]$OctoMasterKey,
 
-#     [Parameter(Mandatory=$true)]
-#     [String]$OctoDbConnectionString,
+     [Parameter(Mandatory=$true)]
+     [String]$OctoDbConnectionString,
 
-#     [Parameter(Mandatory=$true)]
-#     [String]$OctoApiKey,
+     [Parameter(Mandatory=$true)]
+     [String]$OctoApiKey,
 
-#     [Parameter(Mandatory=$true)]
-#     [String]$OctoApiUri,
+     [Parameter(Mandatory=$true)]
+     [String]$OctoApiUri,
 
-#     [Parameter(Mandatory=$false)]
-#     [String[]]$OctoTargetVariableSetsAndOrProjectsNames,
+     [Parameter(Mandatory=$false)]
+     [String[]]$OctoTargetVariableSetsAndOrProjectsNames,
 
-#     [Parameter(Mandatory=$false)]
-#     [String[]]$OctoTargetVariablesNames
-#   )
-
-$OctoMasterKey = 'hxhBJTprBfBEhiGAUbrqDg=='
-$OctoDbConnectionString = 'Data Source=tst-devops-01;integrated Security=False;User ID=sa;Password=#EDCxdr5;Initial Catalog=Octopus_LikeProm031218;TrustServerCertificate=True'
-$OctoApiKey = 'API-XSD9ZRLCWMMDMK8VMJU9P4S84'
-$OctoApiUri = 'http://tst-devops-01:8083/' 
-$OctoTargetVariableSetsAndOrProjectsNames = '!Monopoly connection strings'
+     [Parameter(Mandatory=$false)]
+     [String[]]$OctoTargetVariablesNames
+   )
 
 
 $ErrorActionPreference = "Stop"
@@ -154,7 +148,7 @@ foreach ($VariableSetSqlEntry in $VariableSetSqlEntries) {
     #Use api call to get actual state of variable set, replace sensistive variables to unsesitive ones, push variable set back to API
     $RestHeaders = @{
         "X-Octopus-ApiKey" = "$OctoApiKey"
-        "Content-Type"     = "application/json"
+        "Content-Type"     = "application/json; charset=utf-8"
         "Accept"           = "application/json"
         "User-Agent"       = "PowerShell octopus variables unsensitifier"
     }
@@ -169,7 +163,8 @@ foreach ($VariableSetSqlEntry in $VariableSetSqlEntries) {
                 $_.Type = 'String' 
                 $_.IsSensitive = $false
             } }
-        $ChangedVariableSetRestBody = $($VariableSetRestResource|ConvertTo-Json -Depth 99) 
+        $ChangedVariableSetRestBody = $($VariableSetRestResource|ConvertTo-Json -Depth 99 -Compress)
+        #Must encode body in UTF8 or PowerShell will send in win1251 and mess values
         $ChangedVariableSetRestBody = [System.Text.Encoding]::UTF8.GetBytes($ChangedVariableSetRestBody)
         Invoke-RestMethod -Headers $RestHeaders -Uri $RestUri -Method Put -Body $ChangedVariableSetRestBody -UseBasicParsing | Out-Null
         echo "#############`r`n'$($VariableSetSqlEntry.OwnerName)' have been sucessfully saved via REST API.`r`n#############"
