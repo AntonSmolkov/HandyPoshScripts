@@ -32,14 +32,15 @@ Calculation algorithm:
 
 
 
-Для использования в хвосте версии, из названий веткой удаляются недопустимые символы, название усекается до 14-ти символов (оставшиеся 6 для "-[c|b]4ЦифрыСчетчика[Коммитов|Билдов]").
-Если в хвосте версии используется счетчик коммитов, счетчик обозначается префиксом - 'c', если счетчик билдов TeamCity - 'b'.
+Accordnig to nuget specification package version tail should maximum be 20 characters long.
+To use it so, script leaves only first 14 symbols from branch name (another 6 for "-[c|b]4Digits[Commits|Builds]counter"), and also cleans in from unsupported characters.
+    
 #>
 
 
-#%teamcity.git.fetchAllHeads% - плейсхолдер делающий обязательным параметр в TeamCity. Параметр создает локальные ветки для всех удаленных. К сожалению, всех кроме pull-request.
+#%teamcity.git.fetchAllHeads% - placeholder makes such parameter mandatory to have in TeamCity.  Paramater makes TeamCity to create local branches for all remotes while checkout. Unfortunately, not for pull-requests
 
-#Настроить среду для корректного отображения вывода git-bash
+#Poweshell envinronment setting to correct show git-bash's output
 $env:LC_ALL='C.UTF-8'
 [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding("utf-8")
 
@@ -47,14 +48,15 @@ $env:LC_ALL='C.UTF-8'
 $CurrentBranchName = (git branch | where {$_.trim().startswith('*')}).trimstart('*').trim()
 $CurrentCommit = git rev-parse HEAD
 
-#Так как teamcity при сборке пулл-реквсетов просто делает чекаут на sha коммита получаемого из origin приходится делать вот такой костыль.
+#When teamcity builds pull request, it just does checkout to appropriat commit, without getting ref.
+#So we have to get branch name from teamcity parameter.
 if ('%teamcity.build.branch%' -match '^pull\/\d+\/merge$'){
-$  = '%teamcity.build.branch%'
+$CurrentBranchName  = '%teamcity.build.branch%'
 }
 
 
 
-#Приведем имя ветки в пригодный для использоваия в версии вид
+#Make branch name pretty and appropriate
 $MangledBranchName = $CurrentBranchName
 if ($MangledBranchName  -cmatch '^((pre-)?release)-\d+\.\d+$') {$MangledBranchName = "$($Matches.1)"}
 if ($MangledBranchName  -cmatch 'pull\/(\d+)\/merge'){$MangledBranchName = "pr-$($Matches.1)"}
@@ -63,10 +65,10 @@ if ($MangledBranchName.Length -ge 15){ $MangledBranchName = $MangledBranchName.S
 $MangledBranchName  = ($MangledBranchName  -replace '[^a-zA-Z0-9-]', '-')
 
 #
-#Ветвление в котором производится непосредственно калькуляция версии.
+#Main calculation IF
 #
 
-#Пре-релизная ветка - в хвосте имя бренча и счечик коммитов. Версия берется прямо из имени текущей ветки.
+#Pre-release branch - branch name and commits counter in SemVer tail. Version is getting from branch name.
 if ($CurrentBranchName -cmatch '^pre-release-(?<Major>\d+)\.?(?<Minor>\d+)?\.?(?<Patch>\d+)?$'){
     $BaseVersion=[System.Version]("$([int]$Matches.Major).$([int]$Matches.Minor).$([int]$Matches.Patch)")
     $CommitsCounter = $(git rev-list --count "$CurrentCommit" "^master")
@@ -74,67 +76,67 @@ if ($CurrentBranchName -cmatch '^pre-release-(?<Major>\d+)\.?(?<Minor>\d+)?\.?(?
     $CalculatedNugetVersion = "$BaseVersion-$MangledBranchName-c$CommitsCounterPadded"
     Write-Output "##teamcity[message text='Pre-release branch has been found. Version will be taken from branch name, version tail(semver pre-release-tag) will contain branch name and commit count sinse merge-base with master' status='NORMAL']"
 }
-#Релизная ветка - хвоста нет. Счетчик коммитов в patch-части версии. Версия берется прямо из из имени текущей ветки.
+#Release branch. No tail. Commits counter in Patch SemVer part. Version is getting from branch name.
 elseif ($CurrentBranchName -cmatch '^release-(?<Major>\d+)\.?(?<Minor>\d+)?\.?(?<Patch>\d+)?$'){
-    $la = "$([int]$Matches.Major).$([int]$Matches.Minor).$([int]$Matches.Patch)"
     $BaseVersion=[System.Version]("$([int]$Matches.Major).$([int]$Matches.Minor).$([int]$Matches.Patch)")
- #Если существует пререлизный бранч - считать коммиты от общего предка с ним, иначе - от общего предка с мастером.
- #Нужно так как концепция пре-релизных веток появилась недавно, может потребоваться считать коммиты для старых релизных веток.
+#If pre-release branch exists, count commits from merge-base with it, else from merge-base with release-branch
+#Generally, we have to count commits only from merge base with pre-release branch, 
+#but as as its concept is new, it would be nice to be able to use merge-base with release branches too, for the first time or for the build from old snapshots 
     if (git branch --list "pre-$CurrentBranchName"){
     $CommitsCounter = git rev-list --count "$CurrentCommit" "^pre-$CurrentBranchName"
     }else{
     $CommitsCounter = git rev-list --count "$CurrentCommit" "^master"
     }
 
-    #Специально для release-веток - записать в Patch счетчик коммитов, хвост версии не добавлять.
+    #Put commits count to the Patch(_build) part of version
     $($BaseVersion.GetType().GetField('_Build','static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
     $CalculatedNugetVersion = [string]$BaseVersion
     Write-Output "##teamcity[message text='Release branch has been found. Version will be taken from branch name, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with pre-release branch (or master), will be putted into patch-part of version.' status='NORMAL']"
 }
-#Фича-ветки и master.  Фича ветки - в хвосте имя бренча и счетчик билдов из TeamCity. master - в хвосте имя бренача и счетчик коммитов.
+#Feature-branches and master-branch.  Feature-branches - SemVer tail has branch name and build counter from TeamCity. Master-branch - SemVer tail has branch name and commits counter to merge-base with latest historicaly avalaiible (pre-)release-brach
 else{
-    #Fallback-версия и счетчик коммитов
+    #Fallback-version and commits counter
     $BaseVersion = [version]'0.1.0'
     $CommitsCounter = '0'
 
-    #Находим все версионные ветки (ветки - источники версий),записываем в массив ИмяВетки:ОбъектВерсии сортируем по убыванию объекта версии.
-    #Простая сортировка строк с именами версий не сработала бы. При такой сортировке, например,  версия 2.0.0 оказывалась бы выше версии 10.0.0 просто из-а того, что первая цифра в строке больше.
-    #Так как концепция пре-релизных веток появилась недавно, за версионные ветки будем считать и релизные и пре-релизные ветки, версия в названии и общий предок с master у них идентичны, поэтому это валидно.
-    #В дальнейшем, для порядка имеет смысл убрать релизные ветки из glob-шаблона/регулярного выражения и оставить только пре-релизные. На скорость работы скрипта сильно влиять не должно, так как ветки с дубликаты версий очищаются в процессе обработки
+    #Find all version-containing branches, write them all into array BranchName:VersionObject, sort by version descending.
+    #Cause pre-release brances concept is pretty new, for backwards compatibility will treat both pre-release and release branches as version sources 
+    
     $VersionSources = @()
     $VersionSources += git branch --list 'release-*' 'pre-release-*' | % {$_.trimstart('*').trim()} | ? {$_ -cmatch '^(pre-)?release-(?<Major>\d+)\.?(?<Minor>\d+)?\.?(?<Patch>\d+)?$'} | `
         select  @{n = 'VersionBranchName'; e = {$_}}, @{n='BaseVersion'; e={[System.Version]("$([int]$Matches.Major).$([int]$Matches.Minor).$([int]$Matches.Patch)")}} | `
         sort BaseVersion -Unique -Descending
 
-    #Искать по массиву подходящую версию до первого совпадения
-    #Для каждой ищем merge-base с master. Приндалежность коммита к той или иной версии по тому, если ли этот merge-base в его истории.
+    #Look into array for appropriate version
+    #Get merge-base between version-branch and master-branch. Try to find if we have this merge-base commit in current commits history.
+    #If we have, than version is matching
     foreach ($VersionSource in $VersionSources) {
         
-            #Ищем коммит являющийся merge-base текущей релизной ветки с master.
+            #Get merge-base between verison-brach with master 
             $VersionBranchCommonAnchestorWithMaster = git merge-base master $VersionSource.VersionBranchName
-        #Если общий предок версионной ветки с master является предком текущего коммита, присвоить коммиту эту версию.
+        #If common anchestor between version-branch and master-branch is also an anchestor of current commit - assign version to this commit. 
         if ( $(git merge-base --is-ancestor $VersionBranchCommonAnchestorWithMaster $CurrentCommit ; $LASTEXITCODE) -eq 0) {
             $BaseVersion = $VersionSource.BaseVersion
-            #Так как подразумевается, что после одного релиза начинается работа над другим, произведем инкремент Minor'ной части.
+            #Assume that after one release, work on second starts, increment SemVer minor part to +1
             $($BaseVersion.GetType().GetField('_Minor', 'static,nonpublic,instance')).setvalue($BaseVersion, [int]$BaseVersion.Minor + 1)
-            #Счечик коммитов = Количество коммитов которые присутсвуют в истории текущего коммита и отсуствую в истории общего предка с версионной веткой.
+            #Commits counter = Count of commits wich exist in current snapshots history and does not exist in history of merge-base between version-branch and master-branch.
             $CommitsCounter = git rev-list --count "$CurrentCommit" "^$VersionBranchCommonAnchestorWithMaster"
-            #Прекратить поиск после первого совпадения
+            #Stop looking for version after first match
             break
         }
     }
 
     
-    #Ad-hoc. Уродливо, но лучше пока не придумал.
-    #Ветки у которых должен быть счетчик коммитов, вместо счетчика билдов. Пока тут только master
+    #Ad-hoc. Ugly, but could not make better
+    #Branches must have commits counter instead of builds counter. Only master-branch is here yet.
     if ($CurrentBranchName -cmatch '^master$') {
         $CommitsCounterPadded = $CommitsCounter.PadLeft(4, '0')
         $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName-c$CommitsCounterPadded"
         Write-Output "##teamcity[message text='Master branch has been found. Version will be taken from past closest (pre-)release branch, version tail(semver pre-release-tag) will contain branch name and commit count sinse merge-base with (pre-)release branch' status='NORMAL']"
-    #Feature-ветки - счетчик билдов
+    #Feature-branches - builds counter in version tail
     }else{
         $TCBuildCounterPadded = "%build.counter%".PadLeft(4, '0')
-        #На случай если счетчик билдов превышает 4 цифры - оставить только последние 4 разряда.  Таким образом не придется сбрасывать счетчик почти никогда.
+        #If builds counter from TeamCity exceeds 4 digits, let only last 4 positions.
         $TCBuildCounterPadded =  $TCBuildCounterPadded.Substring($TCBuildCounterPadded.Length - 4)
 
         $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName-b$TCBuildCounterPadded"
@@ -151,16 +153,16 @@ else{
 
 
 
-#Согласно Best-Practics, AssemblyVersion всегда с нулевым Patch. Для взаимозаменяемости сборок с незначительными изменениями.
+#According to Best-Practics, AssemblyVersion should always have zeroed Patch part. It lets assemblies with insignificant differences interract each other.
 $CalculatedAssemblyVersion = "$($BaseVersion.Major).$($BaseVersion.Minor)"
 $CalculatedAssemblyFileVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)"
 $CalculatedAssemblyInformationalVersion = "$CalculatedNugetVersion.$CommitsCounter+Branch.$CurrentBranchName.Sha.$CurrentCommit"
 
-#Выставить параметры с версиями в TeamCity
+#Pop calculated versions to TeamCity parameters
 Write-Host "##teamcity[setParameter name='CalculatedNugetVersion' value='$CalculatedNugetVersion']"
 Write-Host "##teamcity[setParameter name='CalculatedAssemblyVersion' value='$CalculatedAssemblyVersion']"
 Write-Host "##teamcity[setParameter name='CalculatedAssemblyFileVersion' value='$CalculatedAssemblyFileVersion']"
 Write-Host "##teamcity[setParameter name='CalculatedAssemblyInformationalVersion' value='$CalculatedAssemblyInformationalVersion']"
 
-#Выставить версию билда в TeamCity
+#Pop teamcity-ui build version
 Write-Host "##teamcity[buildNumber '$CalculatedNugetVersion']"
