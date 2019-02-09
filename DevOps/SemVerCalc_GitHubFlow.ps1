@@ -1,8 +1,9 @@
-cd "C:\Users\anton.smolkov\Documents\!git repos\Common"
 #requires -version 5
 <#
 .SYNOPSIS
 Скрипт калькуляции версии для GitHubFlow(?). В master всегда стабильный код. Версия обозначается тегами на master.
+.NOTES
+Author: Anton Smolkov - https://github.com/AnSmol
 .DESCRIPTION
  Алгоритм калькуляции:
 * Ветка master - взять теги с версиями, которые доступны по истории и выбрать наивысший по значению. Присвоить версию тега, в patch-часть версии указать количество коммитов от текущего коммита до тега с версией.

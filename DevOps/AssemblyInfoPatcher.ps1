@@ -1,5 +1,11 @@
-#Set versions to building assemblies. Relevant only for old-fasioned projects. 
+<#
+.SYNOPSIS
+#Script sets versions to building assemblies. Relevant only for old-fasioned projects. 
 #New ProjectSDK .csproj's do not use AssemblyInfo.cs anymore, it takes assembly versions as msbuld project parameters.
+.NOTES
+Author: Anton Smolkov - https://github.com/AnSmol
+#>
+
 Get-ChildItem "AssemblyInfo.cs" -Recurse  | % {
     $Content = get-content -Path $_.FullName
 

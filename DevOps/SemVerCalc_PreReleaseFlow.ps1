@@ -2,6 +2,8 @@
 <#
 .SYNOPSIS
 SemVer calculator for Release-flow with pre-release branches (Pre-Release-flow)
+.NOTES
+Author: Anton Smolkov - https://github.com/AnSmol
 .DESCRIPTION
 Calculation algorithm:
 * pre-release branch:
