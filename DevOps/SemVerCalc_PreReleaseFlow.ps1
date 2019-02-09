@@ -98,7 +98,7 @@ elseif ($CurrentBranchName -cmatch '^release-(?<Major>\d+)\.?(?<Minor>\d+)?\.?(?
     }
 
     #Put commits count to the Patch(_build) part of version
-    $($BaseVersion.GetType().GetField('_Build','static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
+    $($BaseVersion.GetType().GetField('_Build','static,nonpublic,instance')).setvalue($BaseVersion, $BaseVersion.Build + [int32]$CommitsCounter)
     $CalculatedNugetVersion = [string]$BaseVersion
     Write-Output "##teamcity[message text='Release branch has been found. Version will be taken from branch name, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with pre-release branch (or master), will be putted into patch-part of version.' status='NORMAL']"
 }
