@@ -11,7 +11,7 @@ Author: Anton Smolkov - https://github.com/AnSmol
   Найти общего предка (merge-base) с master, посчитать количество коммитов от этого общего предка до до тега с версией. Это количество использовать в patch-части версии.
   Добавить Пре-релизный тег(хвост версии) построенный по маске ИмяВетки-СчетчикБилдовИзTeamCity
 
-Для использования в хвосте версии, из названий веткой удаляются недопустимые символы, название усекается до 14-ти символов (оставшиеся 6 для "-[c|b]4ЦифрыСчетчика[Коммитов|Билдов]").
+Для использования в хвосте версии, из названий веткой удаляются недопустимые символы.
 Если в хвосте версии используется счетчик коммитов, счетчик обозначается префиксом - 'c', если счетчик билдов TeamCity - 'b'.
 #>
 
@@ -38,7 +38,6 @@ $MangledBranchName = $CurrentBranchName
 if ($MangledBranchName -cmatch '^((pre-)?release)-\d+\.\d+$') {$MangledBranchName = "$($Matches.1)"}
 if ($MangledBranchName -cmatch 'pull\/(\d+)\/merge') {$MangledBranchName = "pr-$($Matches.1)"}
 if ($MangledBranchName -cmatch '^\(HEAD detached at \w+\)$') {$MangledBranchName = 'DetachedHead'}
-if ($MangledBranchName.Length -ge 15) { $MangledBranchName = $MangledBranchName.Substring(0, 13)}
 $MangledBranchName = ($MangledBranchName -replace '[^a-zA-Z0-9-_]', '-')
 
 
