@@ -42,8 +42,7 @@ Calculation algorithm:
 
 
 
-According to nuget specification, package version tail should maximum be 20 characters long.
-So, script leaves only first 14 symbols from branch name and reserve another 6 for "-[c|b]4Digits[Commits|Builds]counter".
+
 Script also cleans branch-name from unsupported characters.
   
 #>
@@ -72,7 +71,6 @@ $MangledBranchName = $CurrentBranchName
 if ($MangledBranchName  -cmatch '^((pre-)?release)-\d+\.\d+(\.\d+)?$') {$MangledBranchName = "$($Matches.1)"}
 if ($MangledBranchName  -cmatch 'pull\/(\d+)\/merge'){$MangledBranchName = "pr-$($Matches.1)"}
 if ($MangledBranchName  -cmatch '^\(HEAD detached at \w+\)$'){$MangledBranchName = 'DetachedHead'}
-if ($MangledBranchName.Length -ge 15){ $MangledBranchName = $MangledBranchName.Substring(0,13)}
 $MangledBranchName  = ($MangledBranchName  -replace '[^a-zA-Z0-9-_]', '-')
 
 #
