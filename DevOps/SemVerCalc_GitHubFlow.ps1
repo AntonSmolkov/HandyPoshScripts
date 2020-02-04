@@ -38,7 +38,7 @@ $MangledBranchName = $CurrentBranchName
 if ($MangledBranchName -cmatch '^((pre-)?release)-\d+\.\d+$') {$MangledBranchName = "$($Matches.1)"}
 if ($MangledBranchName -cmatch 'pull\/(\d+)\/merge') {$MangledBranchName = "pr-$($Matches.1)"}
 if ($MangledBranchName -cmatch '^\(HEAD detached at \w+\)$') {$MangledBranchName = 'DetachedHead'}
-$MangledBranchName = ($MangledBranchName -replace '[^a-zA-Z0-9-_]', '-')
+$MangledBranchName = ($MangledBranchName -replace '[^a-zA-Z0-9-]', '-')
 
 
 #Счетчик билдов из TeamCity. Нужен почти всегда
