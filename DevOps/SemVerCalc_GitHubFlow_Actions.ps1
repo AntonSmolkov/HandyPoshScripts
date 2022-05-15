@@ -54,7 +54,7 @@ if ($VersionFromTag -ne $null) {
         $CommitsCounter = git rev-list --count "$CurrentCommit" "^$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = [string]$BaseVersion
-        Write-Output "::debug::master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version"
+        Write-Host "::debug::master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version"
         #Feature-ветки - счетчик билдов
  
     Write-Host "::set-output name=calculated_version_is_release::true"
@@ -66,13 +66,15 @@ if ($VersionFromTag -ne $null) {
         $CommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.Sha.$CurrentCommitShort"
-        Write-Output "::debug::Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter"
+        Write-Host "::debug::Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter"
+        Write-Host "::set-output name=calculated_version_is_release::false"
     }
 } else {
     #Fallback-версия и счетчик коммитов
     $BaseVersion = [version]'0.1.0'
     $CommitsCounter = '0'
     $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.Sha.$CurrentCommitShort"
+    Write-Host "::set-output name=calculated_version_is_release::false"    
 }
 
 
