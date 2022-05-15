@@ -13,15 +13,20 @@ Author: Anton Smolkov - https://github.com/AnSmol
 
 #>
 
+
+#Short circuit for tags
+if ($env:REF_TYPE -eq 'tag'){
+    Write-Host "::set-output name=calculated_version::$env:REF_NAME"
+    exit
+}
+
 #Настроить среду для корректного отображения вывода git-bash
 $env:LC_ALL = 'C.UTF-8'
 [Console]::OutputEncoding = [System.Text.Encoding]::GetEncoding("utf-8")
 
-
 $CurrentBranchName = (git branch | where {$_.trim().startswith('*')}).trimstart('*').trim()
 $CurrentCommit = git rev-parse HEAD
 
-echo $CurrentBranchName 
 
 $CurrentCommitShort = $CurrentCommit.Substring(0,7)
 
@@ -41,6 +46,7 @@ $VersionFromTag = git tag --list 'v*' --merged | % {$_.trimstart('*').trim()} | 
     Sort-Object BaseVersion -Unique -Descending | select -First 1
     
 if ($VersionFromTag -ne $null) {
+    
     $BaseVersion = $VersionFromTag.BaseVersion    
     #Master - версия из доступного тега с наивысшим значением версии, нет хвоста версии, cчетчик коммитов до версионного тега помещается в Patch часть версии.
     if ($CurrentBranchName -cmatch '^master$') {
@@ -66,16 +72,6 @@ if ($VersionFromTag -ne $null) {
     $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.Sha.$CurrentCommitShort"
 }
 
-#Согласно Best-Practics, AssemblyVersion всегда с нулевым Patch. Для взаимозаменяемости сборок с незначительными изменениями.
-$CalculatedAssemblyVersion = "$($BaseVersion.Major).$($BaseVersion.Minor)"
-$CalculatedAssemblyFileVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)"
-$CalculatedAssemblyInformationalVersion = "$CalculatedNugetVersion.$CommitsCounter+Branch.$CurrentBranchName.Sha.$CurrentCommit"
-
-#Выставить параметры с версиями в GitHub Actions
-Write-Host "::set-output name=calculated_nuget_version::$CalculatedNugetVersion"
-Write-Host "::set-output name=calculated_assembly_version::$CalculatedAssemblyVersion"
-Write-Host "::set-output name=calculated_assembly_file_version::$CalculatedAssemblyFileVersion"
-Write-Host "::set-output name=calculated_assembly_informational_version::$CalculatedAssemblyInformationalVersion"
 
 Write-Host "::set-output name=calculated_version::$CalculatedNugetVersion"
 
