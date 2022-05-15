@@ -44,7 +44,7 @@ if ($VersionFromTag -ne $null) {
     $BaseVersion = $VersionFromTag.BaseVersion    
     #Master - версия из доступного тега с наивысшим значением версии, нет хвоста версии, cчетчик коммитов до версионного тега помещается в Patch часть версии.
     if ($CurrentBranchName -cmatch '^master$') {
-        $CommitsCounter = git rev-list --count "$CurrentCommit" "^origin/$($VersionFromTag.TagName)"
+        $CommitsCounter = git rev-list --count "$CurrentCommit" "^$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = [string]$BaseVersion
         Write-Output "::debug::master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version"
@@ -54,7 +54,7 @@ if ($VersionFromTag -ne $null) {
     }else {
         #Количество коммитов от merge-base с master до тега с версией. Бампинг path-части.
         $CommonAnchestorWithMaster = git merge-base origin/master $CurrentCommit
-        $CommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^origin/$($VersionFromTag.TagName)"
+        $CommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.sha$CurrentCommitShort"
         Write-Output "::debug::Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter"
