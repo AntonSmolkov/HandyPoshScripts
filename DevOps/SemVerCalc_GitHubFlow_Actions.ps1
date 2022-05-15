@@ -9,13 +9,9 @@ Author: Anton Smolkov - https://github.com/AnSmol
 * Ветка master - взять теги с версиями, которые доступны по истории и выбрать наивысший по значению. Присвоить версию тега, в patch-часть версии указать количество коммитов от текущего коммита до тега с версией.
 * Прочие ветки - взять теги с версиями, которые доступны по истории и выбрать наивысший по значению. 
   Найти общего предка (merge-base) с master, посчитать количество коммитов от этого общего предка до до тега с версией. Это количество использовать в patch-части версии.
-  Добавить Пре-релизный тег(хвост версии) построенный по маске ИмяВетки-СчетчикБилдовИзTeamCity
+  Добавить Пре-релизный тег(хвост версии) построенный по маске ИмяВетки.sha.ShortCommitSha
 
-Для использования в хвосте версии, из названий веткой удаляются недопустимые символы.
-Если в хвосте версии используется счетчик коммитов, счетчик обозначается префиксом - 'c', если счетчик билдов TeamCity - 'b'.
 #>
-
-#%teamcity.git.fetchAllHeads% - плейсхолдер делающий обязательным параметр в TeamCity. Параметр создает локальные теги для всех удаленных. К сожалению, всех кроме pull-request.
 
 #Настроить среду для корректного отображения вывода git-bash
 $env:LC_ALL = 'C.UTF-8'
@@ -49,17 +45,17 @@ if ($VersionFromTag -ne $null) {
         $CommitsCounter = git rev-list --count "$CurrentCommit" "^$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = [string]$BaseVersion
-        Write-Output "##teamcity[message text='master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version.' status='NORMAL']"
+        Write-Output "::debug::master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version"
         #Feature-ветки - счетчик билдов
  
     #Фича-ветки - Хвост из имени ветки и счетчика билдов. В path-части счетчик коммитов от merge-base с мастер до версионного тега.
     }else {
         #Количество коммитов от merge-base с master до тега с версией. Бампинг path-части.
         $CommonAnchestorWithMaster = git merge-base master $CurrentCommit
-        $CommonAnchestorWithMasterCommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^$($VersionFromTag.TagName)"
-        $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommonAnchestorWithMasterCommitsCounter)
+        $CommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^$($VersionFromTag.TagName)"
+        $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.sha$CurrentCommitShort"
-        Write-Output "##teamcity[message text='Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter from TeamCity' status='NORMAL']"
+        Write-Output "::debug::Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter"
     }
 } else {
     #Fallback-версия и счетчик коммитов
@@ -68,8 +64,16 @@ if ($VersionFromTag -ne $null) {
     $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.sha.$CurrentCommitShort"
 }
 
+#Согласно Best-Practics, AssemblyVersion всегда с нулевым Patch. Для взаимозаменяемости сборок с незначительными изменениями.
+$CalculatedAssemblyVersion = "$($BaseVersion.Major).$($BaseVersion.Minor)"
+$CalculatedAssemblyFileVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)"
+$CalculatedAssemblyInformationalVersion = "$CalculatedNugetVersion.$CommitsCounter+Branch.$CurrentBranchName.Sha.$CurrentCommit"
 
+#Выставить параметры с версиями в GitHub Actions
+Write-Host "::set-output name=calculated_nuget_version::$CalculatedNugetVersion"
+Write-Host "::set-output name=calculated_assembly_version::$CalculatedAssemblyVersion"
+Write-Host "::set-output name=calculated_assembly_file_version::$CalculatedAssemblyFileVersion"
+Write-Host "::set-output name=calculated_assembly_informational_version::$CalculatedAssemblyInformationalVersion"
 
+Write-Host "::set-output name=calculated_version::$CalculatedNugetVersion"
 
-#Выставить версию билда в TeamCity
-Write-Host $CalculatedNugetVersion
