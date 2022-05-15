@@ -21,6 +21,8 @@ $env:LC_ALL = 'C.UTF-8'
 $CurrentBranchName = (git branch | where {$_.trim().startswith('*')}).trimstart('*').trim()
 $CurrentCommit = git rev-parse HEAD
 
+echo $CurrentBranchName 
+
 $CurrentCommitShort = $CurrentCommit.Substring(0,7)
 
 #Приведем имя теги в пригодный для использоваия в версии вид
@@ -42,7 +44,7 @@ if ($VersionFromTag -ne $null) {
     $BaseVersion = $VersionFromTag.BaseVersion    
     #Master - версия из доступного тега с наивысшим значением версии, нет хвоста версии, cчетчик коммитов до версионного тега помещается в Patch часть версии.
     if ($CurrentBranchName -cmatch '^master$') {
-        $CommitsCounter = git rev-list --count "$CurrentCommit" "^$($VersionFromTag.TagName)"
+        $CommitsCounter = git rev-list --count "$CurrentCommit" "^origin/$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = [string]$BaseVersion
         Write-Output "::debug::master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version"
@@ -51,8 +53,8 @@ if ($VersionFromTag -ne $null) {
     #Фича-ветки - Хвост из имени ветки и счетчика билдов. В path-части счетчик коммитов от merge-base с мастер до версионного тега.
     }else {
         #Количество коммитов от merge-base с master до тега с версией. Бампинг path-части.
-        $CommonAnchestorWithMaster = git merge-base master $CurrentCommit
-        $CommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^$($VersionFromTag.TagName)"
+        $CommonAnchestorWithMaster = git merge-base origin/master $CurrentCommit
+        $CommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^origin/$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.sha$CurrentCommitShort"
         Write-Output "::debug::Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter"
