@@ -18,6 +18,7 @@ Author: Anton Smolkov - https://github.com/AnSmol
 if ($env:REF_TYPE -eq 'tag' -and $env:REF_TYPE -cmatch "^v\d+\.\d+\.\d+$" ){
     Write-Host "::set-output name=calculated_version::$env:REF_NAME"
     Write-Host "::set-output name=calculated_version_is_release::true"
+    Write-Host $CalculatedNugetVersion
     exit
 }
 
@@ -79,3 +80,4 @@ if ($VersionFromTag -ne $null) {
 
 
 Write-Host "::set-output name=calculated_version::$CalculatedNugetVersion"
+Write-Host $CalculatedNugetVersion
