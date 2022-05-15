@@ -56,14 +56,14 @@ if ($VersionFromTag -ne $null) {
         $CommonAnchestorWithMaster = git merge-base origin/master $CurrentCommit
         $CommitsCounter = git rev-list --count "$CommonAnchestorWithMaster" "^$($VersionFromTag.TagName)"
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
-        $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.sha$CurrentCommitShort"
+        $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.Sha.$CurrentCommitShort"
         Write-Output "::debug::Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter"
     }
 } else {
     #Fallback-версия и счетчик коммитов
     $BaseVersion = [version]'0.1.0'
     $CommitsCounter = '0'
-    $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.sha.$CurrentCommitShort"
+    $CalculatedNugetVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName.Sha.$CurrentCommitShort"
 }
 
 #Согласно Best-Practics, AssemblyVersion всегда с нулевым Patch. Для взаимозаменяемости сборок с незначительными изменениями.
