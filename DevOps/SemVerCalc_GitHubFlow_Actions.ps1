@@ -14,9 +14,10 @@ Author: Anton Smolkov - https://github.com/AnSmol
 #>
 
 
-#Short circuit for tags
-if ($env:REF_TYPE -eq 'tag'){
+#Short circuit for release tags
+if ($env:REF_TYPE -eq 'tag' -and $env:REF_TYPE -cmatch "^v\d+\.\d+\.\d+$" ){
     Write-Host "::set-output name=calculated_version::$env:REF_NAME"
+    Write-Host "::set-output name=calculated_version_is_release::true"
     exit
 }
 
@@ -56,6 +57,8 @@ if ($VersionFromTag -ne $null) {
         Write-Output "::debug::master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version"
         #Feature-ветки - счетчик билдов
  
+    Write-Host "::set-output name=calculated_version_is_release::true"
+
     #Фича-ветки - Хвост из имени ветки и счетчика билдов. В path-части счетчик коммитов от merge-base с мастер до версионного тега.
     }else {
         #Количество коммитов от merge-base с master до тега с версией. Бампинг path-части.
@@ -74,4 +77,3 @@ if ($VersionFromTag -ne $null) {
 
 
 Write-Host "::set-output name=calculated_version::$CalculatedNugetVersion"
-
