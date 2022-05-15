@@ -15,7 +15,6 @@ Author: Anton Smolkov - https://github.com/AnSmol
 Если в хвосте версии используется счетчик коммитов, счетчик обозначается префиксом - 'c', если счетчик билдов TeamCity - 'b'.
 #>
 
-cd /home/anton/IdeaProjects/vaadin-demo-bakery-app/
 #%teamcity.git.fetchAllHeads% - плейсхолдер делающий обязательным параметр в TeamCity. Параметр создает локальные теги для всех удаленных. К сожалению, всех кроме pull-request.
 
 #Настроить среду для корректного отображения вывода git-bash
