@@ -38,7 +38,7 @@ $CurrentCommitShort = $CurrentCommit.Substring(0,7)
 #Приведем имя теги в пригодный для использоваия в версии вид
 $MangledBranchName = $CurrentBranchName
 if ($MangledBranchName -cmatch '^((pre-)?release)-\d+\.\d+$') {$MangledBranchName = "$($Matches.1)"}
-if ($MangledBranchName -cmatch 'pull\/(\d+)\/merge') {$MangledBranchName = "PR-$($Matches.1)"}
+if ($MangledBranchName -cmatch 'pull\/(\d+)\/merge') {$MangledBranchName = "PR$($Matches.1)"}
 if ($MangledBranchName -imatch '.*HEAD.*detached.*') {$MangledBranchName = 'DetachedHead'}
 $MangledBranchName = ($MangledBranchName -replace '[^a-zA-Z0-9-]', '-')
 
