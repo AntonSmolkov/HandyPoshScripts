@@ -72,7 +72,7 @@ if ($null -ne $VersionFromTag) {
         $CommitsCounterPadded = $CommitsCounter.PadLeft(4, '0')
 
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommonAnchestorWithMasterCommitsCounter)
-        $CalculatedVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName-c$CommitsCounterPadded+sha.$CurrentCommitShort"
+        $CalculatedVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName-c$CommitsCounterPadded-sha$CurrentCommitShort"
         Write-Host "::debug::Feature branch has been found. Version will be taken from the past closest version tag, version tail(semver pre-release-tag) will contain branch name and build counter"
         $CalculatedVersionIsRelease = $False
     }
@@ -80,7 +80,7 @@ if ($null -ne $VersionFromTag) {
     #Fallback-версия и счетчик коммитов
     $BaseVersion = [version]'0.1.0'
     $CommitsCounter = '0'
-    $CalculatedVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName-c0000+sha.$CurrentCommitShort"
+    $CalculatedVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName-c0000-sha$CurrentCommitShort"
     $CalculatedVersionIsRelease = $False
 }
 
