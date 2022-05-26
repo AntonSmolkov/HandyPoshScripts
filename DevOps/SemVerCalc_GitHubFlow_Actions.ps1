@@ -2,6 +2,7 @@
 <#
 .SYNOPSIS
 Скрипт калькуляции версии для GitHubFlow(?). В master всегда стабильный код. Версия обозначается тегами на master.
+Вариант для использования в GitHubActions
 .NOTES
 Author: Anton Smolkov - https://github.com/AnSmol
 .DESCRIPTION
@@ -35,7 +36,7 @@ $CurrentCommit = git rev-parse HEAD
 
 $CurrentCommitShort = $CurrentCommit.Substring(0,7)
 
-#Приведем имя теги в пригодный для использоваия в версии вид
+#Приводим имя ветки в пригодный для использоваия в версии вид
 $MangledBranchName = $CurrentBranchName
 if ($MangledBranchName -cmatch '^((pre-)?release)-\d+\.\d+$') {$MangledBranchName = "$($Matches.1)"}
 if ($MangledBranchName -cmatch 'pull\/(\d+)\/merge') {$MangledBranchName = "PR$($Matches.1)"}
@@ -59,10 +60,10 @@ if ($null -ne $VersionFromTag) {
         $($BaseVersion.GetType().GetField('_Build', 'static,nonpublic,instance')).setvalue($BaseVersion, [int32]$CommitsCounter)
         $CalculatedVersion = [string]$BaseVersion
         Write-Host "::debug::master branch has been found. Version will be taken from version tag, version tail(semver pre-release-tag) will be erased. Commit count sinse merge-base with version tag, will be putted into patch-part of version"
-        #Feature-ветки - счетчик билдов
         $CalculatedVersionIsRelease = $True
 
-    #Фича-ветки - Хвост из имени ветки и счетчика билдов. В path-части счетчик коммитов от merge-base с мастер до версионного тега.
+    #Фича-ветки - Хвост из имени ветки, счетчика коммитов, SHA текущего коммита. 
+    #В path-части версии счетчик коммитов от merge-base с master до версионного тега.
     }else {
         #Количество коммитов от merge-base с master до тега с версией. Бампинг path-части.
         $CommonAnchestorWithMaster = git merge-base origin/master $CurrentCommit
@@ -77,7 +78,7 @@ if ($null -ne $VersionFromTag) {
         $CalculatedVersionIsRelease = $False
     }
 } else {
-    #Fallback-версия и счетчик коммитов
+    #Fallback-версия и хвост
     $BaseVersion = [version]'0.1.0'
     $CommitsCounter = '0'
     $CalculatedVersion = "$($BaseVersion.Major).$($BaseVersion.Minor).$($BaseVersion.Build)-$MangledBranchName-c0000-sha$CurrentCommitShort"
