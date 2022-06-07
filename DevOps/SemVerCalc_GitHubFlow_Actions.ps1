@@ -17,7 +17,7 @@ Author: Anton Smolkov - https://github.com/AnSmol
 #$env:GITHUB_ENV = '~/github.env.lab'
 
 #Short circuit for release tags
-if ($env:REF_TYPE -eq 'tag' -and $env:REF_TYPE -cmatch '^v(?<Major>\d+)\.?(?<Minor>\d+)?\.?(?<Patch>\d+)?$' ){
+if ($env:REF_TYPE -eq 'tag' -and $env:REF_NAME -cmatch '^v(?<Major>\d+)\.?(?<Minor>\d+)?\.?(?<Patch>\d+)?$' ){
     
     "CALCULATED_VERSION=$env:REF_NAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
     "CALCULATED_VERSION_IS_RELEASE=$True" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
